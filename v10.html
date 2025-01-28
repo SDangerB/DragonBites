@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demon Prince Revolution</title>
+  <style>
+    /* CSS Styles (unchanged) */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 10px auto;
+      padding: 10px;
+      background-color: #2a2a2a;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      color: #ff4444;
+    }
+
+    button {
+      background-color: #444;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      position: relative;
+    }
+
+    button:disabled {
+      background-color: #666;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #555;
+    }
+
+    .stats, .actions, .upgrades, .powers, .events, .minions {
+      margin: 20px 0;
+    }
+
+    .events {
+        background-color: #333;
+        padding: 10px;
+        border-radius: 5px;
+        height: 200px;
+        overflow-y: auto;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .events h2 {
+        color: #ffcc00;
+        margin-top: 0;
+    }
+
+    #event-log {
+        color: #ffcc00;
+        display: flex;
+        flex-direction: column-reverse;
+        flex-grow: 1;
+    }
+
+    #event-log p {
+        margin: 5px 0;
+        padding: 2px 5px;
+        border-bottom: 1px solid #444;
+    }
+
+    .tooltip {
+      visibility: hidden;
+      width: 200px;
+      background-color: #555;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%; /* Position above the button */
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    button:hover .tooltip, 
+    button:active .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .minion-card {
+      background-color: #444;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .minion-card h3 {
+      margin: 0;
+      color: #ffcc00;
+    }
+
+    .minion-card h3.promoted {
+      color: #ff4444;
+    }
+
+    .minion-card p {
+      margin: 5px 0;
+    }
+
+    .minion-card button {
+      margin: 5px;
+    }
+
+    .debug-actions {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Demon Revolution</h1>
+    <p>Bring the End.</p>
+
+    <div class="stats">
+      <p>Corrupted Populace: <span id="corrupted">0</span></p>
+      <p>Cities Captured: <span id="cities">0</span></p>
+      <p>Gold: <span id="gold">0</span></p>
+      <p>Influence: <span id="influence">0</span></p>
+      <p>Reputation: <span id="reputation">0</span></p>
+      <p>Soul Essence: <span id="soul-essence">0</span></p>
+    </div>
+
+    <div class="actions">
+      <button id="corrupt-button">
+        Corrupt Populace
+        <span class="tooltip">Personally influence the populace.<br>Efficiency scales with reputation and minion corruption boost.</span>
+      </button>
+      <button id="capture-gang-button" disabled>
+        Crush Gang
+        <span class="tooltip">Cost: <span id="capture-gang-cost">30</span> Corrupted.<br>Crush an underworld gang to loot a small amount of gold and influence.</span>
+      </button>
+      <button id="capture-city-button" disabled>
+        Capture City
+        <span class="tooltip">Cost: 5000 Corrupted.<br>Capture a city to earn gold and influence.</span>
+      </button>
+      <button id="trigger-uprising-button">
+        Trigger Uprising
+        <span class="tooltip">Attempt to instantly take a city. Success chance: <span id="uprising-chance">0%</span>. This risks many of your populace.</span>
+      </button>
+      <button id="recruit-minion-button">
+        Recruit Minion
+        <span class="tooltip">Cost: 100 Gold.<br>Recruit a minion with random stats and traits.</span>
+      </button>
+    </div>
+
+    <div class="upgrades">
+      <h2>Upgrades</h2>
+      <button id="auto-corrupt-button" disabled>
+        Auto-Corrupt
+        <span class="tooltip">Cost: <span id="auto-corrupt-cost">10</span> Influence. Automatically corrupt 1 populace every second.</span>
+      </button>
+      <button id="establish-hideout-button" disabled>
+        Establish Safehouse
+        <span class="tooltip">Cost: <span id="establish-hideout-cost">200</span> Gold.<br>Generate 1 gold every second.</span>
+      </button>
+      <button id="propaganda-button" disabled>
+        Propaganda Campaign
+        <span class="tooltip">Cost: 1000 Gold.<br>Increase reputation by 10.</span>
+      </button>
+    </div>
+
+    <div class="powers">
+      <h2>Powers</h2>
+      <button id="fear-aura-button" disabled>
+        Fear Aura
+        <span class="tooltip">Cost: 200 Soul Essence. Unlock Fear Aura to passively corrupt 20 populace every 5 seconds.</span>
+      </button>
+      <button id="reduce-commons-button" disabled>
+        Draconic Standards
+        <span class="tooltip">Cost: <span id="reduce-commons-cost">200</span> Soul Essence. Reduces the odds of getting a Common minion.</span>
+      </button>
+      <button id="shadow-step-button" disabled>
+        Placeholder
+        <span class="tooltip">Cost: 500 Soul Essence. Unlock Shadow Step to meow meow meow meow.</span>
+      </button>
+    </div>
+
+    <div class="events">
+        <h2>Events</h2>
+        <div id="event-log"></div>
+      </div>
+
+    <div class="minions">
+      <h2>Minions</h2>
+      <div id="minion-list"></div>
+    </div>
+
+    <div class="debug-actions">
+      <h2>Debug Actions</h2>
+      <button id="debug-gold">Debug: +1000 Gold</button>
+      <button id="debug-populace">Debug: +1000 Populace</button>
+      <button id="debug-essence">Debug: +1000 Soul Essence</button>
+      <button id="debug-influence">Debug: +1000 Influence</button>
+      <button id="debug-reputation">Debug: +1000 Reputation</button>
+    </div>
+  </div>
+
+  <script>
+    // Game Variables
+    let corruptedPopulace = 0;
+    let citiesCaptured = 0;
+    let gold = 0;
+    let influence = 0;
+    let reputation = 0;
+    let soulEssence = 0;
+    let autoCorruptInterval = null;
+    let hideouts = 0;
+    let minions = [];
+    let fearAuraUnlocked = false;
+    let shadowStepUnlocked = false;
+    let autoCorruptCost = 10; // Initial Auto-Corrupt cost
+    let captureGangCost = 30;
+    let establishHideoutCost = 200; // Initial Establish Hideout cost
+    let lieutenantsCount = 0; // Track number of promoted minions
+    let activeUniqueMinions = [];
+    let lastEvent = null;
+    let lastEventCount = 1;
+    let lastUpgradeMessage = null;
+    let lastUpgradeLevel = null;
+    let lastUpgradeMinionName = null;
+    let lastUpgradeCurrentLevel = null;
+    let reduceCommonsCost = 50;
+    let commonsChance = 60; //60 is starting rarity, reduces by 5 every upgrade
+    let refuseCommons = false;
+    let raresChance = 30;
+    let epicsChance = 5;
+
+    // DOM Elements
+    const corruptedElement = document.getElementById('corrupted');
+    const citiesElement = document.getElementById('cities');
+    const goldElement = document.getElementById('gold');
+    const influenceElement = document.getElementById('influence');
+    const reputationElement = document.getElementById('reputation');
+    const soulEssenceElement = document.getElementById('soul-essence');
+    const corruptButton = document.getElementById('corrupt-button');
+    const captureCityButton = document.getElementById('capture-city-button');
+    const captureGangButton = document.getElementById('capture-gang-button');
+    const triggerUprisingButton = document.getElementById('trigger-uprising-button');
+    const recruitMinionButton = document.getElementById('recruit-minion-button');
+    const autoCorruptButton = document.getElementById('auto-corrupt-button');
+    const propagandaButton = document.getElementById('propaganda-button');
+    const establishHideoutButton = document.getElementById('establish-hideout-button');
+    const fearAuraButton = document.getElementById('fear-aura-button');
+    const shadowStepButton = document.getElementById('shadow-step-button');
+    const reduceCommonsButton = document.getElementById('reduce-commons-button');
+    const eventLog = document.getElementById('event-log');
+    const minionList = document.getElementById('minion-list');
+
+    // Helper Functions
+    function getTimestamp() {
+      const now = new Date();
+      return now.toLocaleString();
+    }
+
+    function logEvent(message) {
+        const eventLog = document.getElementById('event-log');
+        const lastEntry = eventLog.lastElementChild;
+
+    // Check if the last entry is the same as the current message
+    if (lastEntry && lastEntry.textContent.includes(message)) {
+        // If it's the same, update the count
+        lastEventCount++;
+        lastEntry.textContent = `[${getTimestamp()}] ${message} x${lastEventCount}`;
+    } else {
+        // If it's a new message, create a new entry
+        const eventEntry = document.createElement('p');
+        eventEntry.innerHTML = `[${getTimestamp()}] ${message}`;
+        eventLog.appendChild(eventEntry);
+        lastEventCount = 1;
+    }
+    // Auto-scroll to bottom
+    eventLog.scrollTop = eventLog.scrollHeight;
+}
+
+function logUpgradeEvent(minion) {
+    const eventLog = document.getElementById('event-log');
+    const lastEntry = eventLog.lastElementChild;
+
+    const newMessage = `Upgraded ${minion.name} to level ${minion.stats.level}!`;
+
+    // Check if the last entry was an upgrade for the same minion
+    if (
+        lastEntry &&
+        lastUpgradeMinionName === minion.name &&
+        lastEntry.textContent.includes(`Upgraded ${minion.name}`)
+    ) {
+        // If it's a consecutive upgrade, update the last entry
+        lastEntry.textContent = `[${getTimestamp()}] Upgraded ${minion.name} to level ${lastUpgradeStartLevel}->${minion.stats.level}!`;
+    } else {
+        // If it's a new upgrade, create a new entry
+        logEvent(newMessage);
+        // Reset the starting level for the new upgrade sequence
+        lastUpgradeStartLevel = minion.stats.level;
+    }
+
+    // Update the last upgrade details
+    lastUpgradeMinionName = minion.name;
+    lastUpgradeCurrentLevel = minion.stats.level;
+}
+
+
+    function calculateTotalBoost(stat) {
+      return minions.reduce((total, minion) => total + minion.stats[stat], 0);
+    }
+
+    function updateDisplay() {
+      corruptedElement.textContent = Math.floor(corruptedPopulace);
+      citiesElement.textContent = Math.floor(citiesCaptured);
+      goldElement.textContent = Math.floor(gold);
+      influenceElement.textContent = Math.floor(influence);
+      reputationElement.textContent = Math.floor(reputation);
+      soulEssenceElement.textContent = Math.floor(soulEssence);
+
+      // Enable/disable buttons based on resources
+      captureCityButton.disabled = corruptedPopulace < 5000;
+      captureGangButton.disabled = corruptedPopulace < captureGangCost;
+      autoCorruptButton.disabled = influence < autoCorruptCost;
+      propagandaButton.disabled = gold < 1000;
+      establishHideoutButton.disabled = gold < establishHideoutCost;
+      fearAuraButton.disabled = soulEssence < 200 || fearAuraUnlocked;
+      shadowStepButton.disabled = soulEssence < 500 || shadowStepUnlocked;
+      reduceCommonsButton.disabled = soulEssence < reduceCommonsCost;
+
+      // Update tooltips
+      document.getElementById('auto-corrupt-cost').textContent = autoCorruptCost;
+      document.getElementById('capture-gang-cost').textContent = captureGangCost;
+      document.getElementById('establish-hideout-cost').textContent = establishHideoutCost;
+      document.getElementById('reduce-commons-cost').textContent = reduceCommonsCost;
+
+      // Calculate success chance for Trigger Uprising
+      let successChance = 0;
+      if (corruptedPopulace >= 2500) {
+        successChance = Math.min(70, ((corruptedPopulace - 2500) / 7500) * 50 + 20); // Scales from 20% to 70%
+      }
+      document.getElementById('uprising-chance').textContent = `${Math.floor(successChance)}%`;
+    }
+
+    // Game Mechanics
+    function corrupt() {
+      const efficiency = 1 + (reputation / 100); // Reputation boosts efficiency
+      const corruptionBoost = calculateTotalBoost('corruptionBoost');
+      const bonus = 1 + (corruptionBoost / 100); // +1% per corruptionBoost
+      corruptedPopulace += efficiency * bonus;
+      updateDisplay();
+    }
+
+    function captureCity() {
+      if (corruptedPopulace >= 5000) {
+        corruptedPopulace -= 5000;
+        citiesCaptured += 1;
+        const goldBoost = calculateTotalBoost('goldBoost');
+        const influenceBoost = calculateTotalBoost('influenceBoost');
+        gold += 500 * (1 + (goldBoost / 100));
+        influence += 100 * (1 + (influenceBoost / 100));
+        logEvent("City captured! Gold and influence increased.");
+        updateDisplay();
+      }
+    }
+
+    function captureGang() {
+      if (corruptedPopulace >= captureGangCost) {
+        corruptedPopulace -= captureGangCost;
+        captureGangCost = Math.floor(captureGangCost * 1.25);
+        const goldBoost = calculateTotalBoost('goldBoost');
+        const influenceBoost = calculateTotalBoost('influenceBoost');
+        gold += 50 * (1 + (goldBoost / 100));
+        influence += 10 * (1 + (influenceBoost / 100));
+        logEvent("Another syndicate is crushed. You reap their equipment and their reputation. Other factions grow more wary of you.");
+        updateDisplay();
+      }
+    }
+
+    function triggerUprising() {
+      let successChance = 0;
+      if (corruptedPopulace >= 2500) {
+        successChance = Math.min(70, ((corruptedPopulace - 2500) / 7500) * 50 + 20); // Scales from 20% to 70%
+      }
+      if (Math.random() < successChance / 100) {
+        const successFactor = Math.random() * 0.1; // Random factor between 0 and 0.1
+        const lostPopulace = Math.floor(corruptedPopulace * (0.01 + successFactor)); // Random between 0.01 and 0.1
+        corruptedPopulace -= lostPopulace;
+        citiesCaptured += 1;
+        gold += 500;
+        influence += 100;
+        logEvent(`Uprising successful! City captured. Lost ${lostPopulace} populace in the process.`);
+      } else {
+        const failureFactor = Math.random() * 0.3; // Random factor between 0 and 0.3
+        const lostPopulace = Math.floor(corruptedPopulace * (0.01 + failureFactor)); // Random between 0.01 and 0.3
+        corruptedPopulace -= lostPopulace;
+        logEvent(`Uprising failed! Lost ${lostPopulace} populace.`);
+      }
+      updateDisplay();
+    }
+
+    function recruitMinion() {
+      if (gold >= 100) {
+        gold -= 100;
+        const minion = generateMinion();
+        minions.push(minion);
+        logEvent(`Recruited ${minion.name} (${minion.rarity})!`);
+        updateDisplay();
+        renderMinions();
+      }
+    }
+
+// Name Lists
+const uniqueNames = [
+  "Nahira", "Natsuko", "Priya", "Rose", "Namlu", "Ritual", "Chupra", "Kitsuneet",
+  "Zya", "Inga", "Clever", "Dusty", "Grimgrin", "Deathtouch", "Etrata", "Nadalith", "Greve",
+  "Lila", "Harrow", "Valerie", "Lala", "Coyote", "God-Eater", "Elf", "Super Stella", "Drain", "Xalyth", 
+  "Eryss Lyraze Baela", "Beats", "The Final Puppy", "Emberith", "Decima",
+];
+
+const genericNames = [
+  "Aella", "Bryn", "Roxy", "Daria", "Elara", "Faye", "Tame", "Hestri", "Iris", "Juno", "Huntress",
+  "Kira", "Luna", "Maeve", "Nyx", "Ophelia", "Piper", "Quinn", "Rhea", "Sable", "Talia", "Killergirl",
+  "Uma", "Vera", "Wren", "Yara", "Zelda", "Zipper", "Chloena", "Avery", "Henrietta",
+  "Rowan", "Skyla", "Taylire", "Morgan", "Alexa", "Alexis", "Charlie", "Vritra", "Tanilia", "Stella",
+  "Gummy", "Christine", "Lilin", "Darla", "Emmy", "Kayle", "Sylanis", "Snare", "Bedbug", "Critter",
+  "Screw", "Ash", "Bella", "Bell", "Gwyn", "Shrike", "Masamune", "Cinder", "Yvonne", "Wesker", "Lady", "Myriad",
+  "Puppy", "Roar", "Glim", "Justine", "Maltecora", "Velvet", "Ya'el", "Fatima", "Haunt", "Jinxy", "Miso", "Thorn",
+  "Penny", "Dreadful", "Redcrosse", "Question", "Answer", "Clover", "Peace", "Mia", "Chesapeake", "Bliss",
+  "Twist", "Cheshire", "Quinn", "Chains", "Ivy", "Harm", "Amelie", "Hayawan", "Tombe", "Asp", "Miri",
+  // ... (add more names as needed)
+];
+
+const prefixes = [
+  "Shadow", "Crimson", "Iron", "Frost", "Ember", "Storm", "Blood", "Night", "Ash", "Silver",
+  "Golden", "Dark", "Light", "Heart", "Chaos", "Void", "Arcane", "Mystic", "Eternal", "Infernal",
+  "Cloud", "Killer", "Slasher", "Hunter", "Slayer", "Stalker", "Spirit", "Ascendant", "Sand", "Glass", "Rose",
+  "Puppy", "Cancer",
+  // ... (add more prefixes as needed)
+];
+
+// New table for adjectives and verbs
+const adjectiveVerbPrefixes = [
+  "Burning", "Gleaming", "Twisted", "Haunted", "Shining", "Cursed", "Blessed", "Fallen", "Ancient", "Risen", "Unbreakable", "Broken", "Haunted",
+  "Stalking", "Hunting", "Seeking", "Lurking", "Raging", "Dancing", "Dreaming", "Howling", "Whispering", "Slaying", "Puppy", "Weeping", "Shrieking",
+  "Crazed", "Bloody", "Bloodsoaked", "Charming", "Doting", "Lovesick",
+];
+
+const suffixes = [
+  ", of the Marsh", ", from the Shadows", ", Fearless", ", Sacrilegious Hunter", ", Unrepentant Lover", ", The Puppy", " Who Never Gives Up", ", Without Remorse",
+  ", Unrelenting", ", Driven Mad With Love", ", Driven Mad With Rage", ", Driven Mad With Hunger", ", Driven Mad With Fear", ", the Broken Doll", ", the Lost Angel",
+  ", Lost and Wandering", ", Devoted", ", Devoted and Desperate", ", Devoted to Victory", ", Devoted to Love", ", Who Gets What She Wants", "Who Is Who She Wishes",
+  ", Witch of Love", ", Witch of Woods", ", Witch of Cities", ", Witch of Conquest", ", Witch of Blood", ", Witch of Hearts", ", Queen of Hearts", ", Queen of Aces",
+  ", Queen of Clubs", ", Queen of Spades", ", Cuckquean", ", Rebuilt", ", Reborn", ", Freshly Varnished", ", Beloved By All Who See Her", ", Feared By All Who See Her", 
+  ", Of Claws And Horns", ", Of Teeth And Bite", ", Punching Bag", ", Witch of Ice", ", Witch of Crows", ", Witch of Ragdolls", ", Witch of Wifi", ", Betrayer",
+  ", who Betrayed What She Loved For What She Loves", ", Sentient Weapon", ", Animated Weapon", ", Who Chose To Be A Weapon", ", PURE IN EVERYTHING", ", the Happy Angel",
+  ", the Nice One!", ", the Funny One!", ", the Abandoned Tool", ", the Fired Bullet", ", who Followed Love to Damnation", ", Witch of Kisses", ", Witch of Kissies", 
+  ", Unrepentant Flirt", ", Collared and Leashed", ", Muzzled and Trained", ", Muzzled and Dangerous", ", the Violent Mutt", ", the Beloved Mutt", ", God's Sleepiest Angel",
+  ", God's Funniest Angel", ", Everyone's Favorite", ", Everyone's Least Favorite", ", Who Hunts Souls", ", Descended From On High", ", The Flayer", ", Who Once Was Dead", 
+  ", Devourer of Demons", ", hungry :c", ", the Intoxicating", ", the Narcotic", ", the Guileless", ", the Loveliest", ", Shorn of Shame", ", The Last Of The Goliaths", 
+  ", Who Was Never Real", ", Rogue Tulpa", ", of the Stars", ", of the Clouds", ", of the Heavens", ", of the Earth", ", like a Bat Out Of Hell",
+
+  // ... (add more suffixes as needed)
+];
+
+// Rarity Distribution
+const rarityWeights = {
+  Common: commonsChance,
+  Rare: raresChance,
+  Epic: epicsChance,
+  Legendary: 3,
+  Unique: 2,
+};
+
+// Helper Functions
+function getRandomFromList(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function getRandomRarity() {
+  const totalWeight = Object.values(rarityWeights).reduce((a, b) => a + b, 0);
+  let random = Math.random() * totalWeight;
+  for (const [rarity, weight] of Object.entries(rarityWeights)) {
+    if (random < weight) return rarity;
+    random -= weight;
+  }
+  if (refuseCommons === false){
+    logEvent(`Fallback, made a common?`);
+    return "Common"; // Fallback
+  } else if (refuseCommons === true){
+    logEvent(`Tried to make a common?`);
+    return "Rare"; // Fallback if commonsChance has been set to 0
+  }
+}
+
+function generatePrefixedName(name) {
+  // 50% chance for double prefix
+  const hasDoublePrefix = Math.random() < 0.5;
+  
+  if (hasDoublePrefix) {
+    const firstPrefix = getRandomFromList(adjectiveVerbPrefixes);
+    const secondPrefix = getRandomFromList(prefixes);
+    return `${firstPrefix} ${secondPrefix} ${name}`;
+  } else {
+    const prefix = getRandomFromList(prefixes);
+    return `${prefix} ${name}`; //Returns the name for 'name'
+  }
+}
+
+function generateMinion() {
+  const rarity = getRandomRarity();
+  let name, title = "";
+  
+  if (rarity === "Unique") {
+    const availableUniqueNames = uniqueNames.filter(name => !activeUniqueMinions.includes(name));
+    if (availableUniqueNames.length === 0) {
+      return generateMinion();
+    } else {
+      name = getRandomFromList(availableUniqueNames);
+      activeUniqueMinions.push(name);
+    }
+  } else {
+    name = getRandomFromList(genericNames);
+    if (rarity === "Rare") {
+      name = generatePrefixedName(name);
+    } else if (rarity === "Epic") {
+      title = `${getRandomFromList(suffixes)}`;
+      name = `${name}${title}`;
+    } else if (rarity === "Legendary") {
+      name = generatePrefixedName(name); // Add prefix(es)
+      name = `${name}${getRandomFromList(suffixes)}`; // Add one suffix
+    }
+  }
+
+  const stats = {
+    level: 1,
+    corruptionBoost: getStatByRarity(rarity),
+    goldBoost: getStatByRarity(rarity),
+    influenceBoost: getStatByRarity(rarity),
+    promoted: false,
+    upgradeCost: 100,
+  };
+
+  return { name, rarity, stats };
+}
+
+    function getStatByRarity(rarity) {
+      switch (rarity) {
+        case "Common": return Math.floor(Math.random() * 6); // 0-5
+        case "Rare": return Math.floor(Math.random() * 8) + 3; // 3-10
+        case "Epic": return Math.floor(Math.random() * 16) + 10; // 10-25
+        case "Legendary": return Math.floor(Math.random() * 21) + 20; // 20-40
+        case "Unique": return Math.floor(Math.random() * 51) + 50; // 50-100
+        default: return 0;
+      }
+    }
+
+    function renderMinions() {
+      minionList.innerHTML = "";
+      minions.forEach((minion, index) => {
+        const card = document.createElement('div');
+        card.className = 'minion-card';
+        card.innerHTML = `
+          <h3 class="${minion.stats.promoted ? 'promoted' : ''}">${minion.name} (${minion.rarity})</h3>
+          <p>Level: ${minion.stats.level}</p>
+          <p>Corruption Boost: +${minion.stats.corruptionBoost}%</p>
+          <p>Gold Boost: +${minion.stats.goldBoost}%</p>
+          <p>Influence Boost: +${minion.stats.influenceBoost}%</p>
+          <button onclick="upgradeMinion(${index})" ${minion.stats.promoted ? 'data-promoted="true"' : ''}>
+            Upgrade
+            <span class="tooltip">Cost: 100 Gold. ${minion.stats.promoted ? 'Gains +2 to all stats.' : 'Gains +1 to all stats.'}</span>
+          </button>
+          <button onclick="promoteMinion(${index})" ${minion.stats.promoted || lieutenantsCount >= 5 ? 'disabled' : ''}>
+            Promote
+            <span class="tooltip">${lieutenantsCount >= 5 ? 'Max lieutenants reached (5).' : 'Cost: 100 Influence. Doubles stats and future stat gains.'}</span>
+          </button>
+          <button onclick="demoteMinion(${index})">
+            Demote to Pet
+            <span class="tooltip">Gain ${minion.stats.level * 50} Influence.</span>
+          </button>
+          <button onclick="consumeSoul(${index})">
+            Consume Soul
+            <span class="tooltip">Gain ${minion.stats.level * 100} Soul Essence.</span>
+          </button>
+        `;
+        minionList.appendChild(card);
+      });
+    }
+
+    function upgradeMinion(index) {
+      if (gold >= 100) {
+        gold -= 100;
+        const minion = minions[index];
+        const statIncrease = minion.stats.promoted ? 2 : 1; // +2 if promoted, +1 otherwise
+        minion.stats.level += 1;
+        minion.stats.corruptionBoost += statIncrease;
+        minion.stats.goldBoost += statIncrease;
+        minion.stats.influenceBoost += statIncrease;
+        logUpgradeEvent(minion);
+        updateDisplay();
+        renderMinions();
+      }
+    }
+
+    function promoteMinion(index) {
+      if (influence >= 100 && lieutenantsCount < 5) {
+        influence -= 100;
+        const minion = minions[index];
+        minion.stats.corruptionBoost *= 2;
+        minion.stats.goldBoost *= 2;
+        minion.stats.influenceBoost *= 2;
+        minion.stats.promoted = true;
+        minion.rarity = "Lieutenant";
+        lieutenantsCount += 1;
+        logEvent(`Promoted ${minion.name} to Lieutenant!`);
+        updateDisplay();
+        renderMinions();
+      }
+    }
+
+    function demoteMinion(index) {
+        const minion = minions[index];
+        logEvent(`${minion.name} serves better as a status symbol than a tool. They wish they were you. They wish they were <em>her</em>. Gained ${minion.stats.level * 50} influence.`);
+        // Gain Influence based on level
+        influence += minion.stats.level * 50;
+        // If the minion is unique, remove them from activeUniqueMinions
+        if (minion.rarity === "Unique") {
+        activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
+        }
+        // Remove the minion from the list
+        minions.splice(index, 1);
+        renderMinions();
+    }
+
+    function consumeSoul(index) {
+        const minion = minions[index];
+        logEvent(`${minion.name}'s soul wisps through through lips and into yours. She's happy, on the way down. Harvested ${minion.stats.level * 100} essence.`);
+        // Gain Soul Essence based on level
+        soulEssence += minion.stats.level * 100;
+
+        // If the minion is unique, remove them from activeUniqueMinions
+        if (minion.rarity === "Unique") {
+            activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
+        }
+        // Remove the minion from the list
+        minions.splice(index, 1);
+
+        renderMinions();
+    }
+
+    function unlockFearAura() {
+      if (soulEssence >= 200) {
+        soulEssence -= 200;
+        fearAuraUnlocked = true;
+        setInterval(() => {
+          const corruptionBoost = calculateTotalBoost('corruptionBoost');
+          const bonus = 1 + (corruptionBoost / 100); // +1% per corruptionBoost
+          corruptedPopulace += 20 * (1 + (reputation / 100)) * bonus;
+          updateDisplay();
+        }, 5000); // Fear aura boosts corruption every 5 seconds
+        logEvent("When you enter the room, everyone's stomach sinks. Your presence is narcotic.");
+        updateDisplay();
+      }
+    }
+
+    function unlockShadowStep() {
+      if (soulEssence >= 500) {
+        soulEssence -= 500;
+        shadowStepUnlocked = true;
+        logEvent("Shadow Step unlocked! Instantly capture gangs.");
+        updateDisplay();
+      }
+    }
+
+    function reduceCommons() {
+      if (soulEssence >= reduceCommonsCost) {
+        if (commonsChance <= 0) {
+            logEvent("You already filter out the pliable dregs. This is unnecessary.")
+        } else {
+            soulEssence -= reduceCommonsCost;
+            reduceCommonsCost = Math.floor(reduceCommonsCost * 1.25); // Increase cost by 1.25x
+            commonsChance = Math.max(commonsChance - 5, 0); //Lowers commons chance by 5 but never below 0
+            rarityWeights.Common = commonsChance;
+            if (commonsChance > 0) {
+                logEvent(`You've been getting better at filtering out the rabble. Less Common minions will waste your time.`);
+            } else {
+                refuseCommons = true;
+                logEvent(`You've mastered the art of identifying the spark. Capacity for bravery, capacity for heroics, capacity for hatred, capacity for devotion...`);
+            }
+
+        }
+        updateDisplay();
+      }
+    }
+
+    // Debug Functions
+    function debugAddGold() {
+      gold += 1000;
+      logEvent("Debug: Added 1000 gold.");
+      updateDisplay();
+    }
+
+    function debugAddPopulace() {
+      corruptedPopulace += 1000;
+      logEvent("Debug: Added 1000 Populace.");
+      updateDisplay();
+    }
+
+    function debugAddEssence() {
+      soulEssence += 1000;
+      logEvent("Debug: Added 1000 Soul Essence.");
+      updateDisplay();
+    }
+
+    function debugAddInfluence() {
+      influence += 1000;
+      logEvent("Debug: Added 1000 Influence.");
+      updateDisplay();
+    }
+
+    function debugAddReputation() {
+      reputation += 1000;
+      logEvent("Debug: Added 1000 Reputation.");
+      updateDisplay();
+    }
+
+    // Event Listeners
+    corruptButton.addEventListener('click', corrupt);
+    captureCityButton.addEventListener('click', captureCity);
+    captureGangButton.addEventListener('click', captureGang);
+    triggerUprisingButton.addEventListener('click', triggerUprising);
+    recruitMinionButton.addEventListener('click', recruitMinion);
+
+    autoCorruptButton.addEventListener('click', () => {
+      if (influence >= autoCorruptCost) {
+        influence -= autoCorruptCost;
+        autoCorruptCost = Math.floor(autoCorruptCost * 1.25); // Increase cost by 1.25x
+        autoCorruptInterval = setInterval(() => {
+          const corruptionBoost = calculateTotalBoost('corruptionBoost');
+          const bonus = 1 + (corruptionBoost / 100); // +1% per corruptionBoost
+          corruptedPopulace += 1 * (1 + (reputation / 100)) * bonus;
+          updateDisplay();
+        }, 1000); // Auto-corrupt every second
+        autoCorruptButton.disabled = true;
+        logEvent("They flock to you. Word of mouth, sting of touch. They know you're right. They know you're holy.");
+        updateDisplay();
+      }
+    });
+
+    propagandaButton.addEventListener('click', () => {
+      if (gold >= 1000) {
+        gold -= 1000;
+        reputation += 10;
+        logEvent("Propaganda campaign launched! Reputation increased.");
+        updateDisplay();
+      }
+    });
+
+    establishHideoutButton.addEventListener('click', () => {
+      if (gold >= establishHideoutCost) {
+        gold -= establishHideoutCost;
+        establishHideoutCost = Math.floor(establishHideoutCost * 1.15); // Increase cost by 1.25x
+        hideouts += 1;
+        setInterval(() => {
+          const goldBoost = calculateTotalBoost('goldBoost');
+          const bonus = 1 + (goldBoost / 100); // +1% per goldBoost
+          gold += hideouts * 1 * bonus; // Generate 1 gold per hideout every second
+          updateDisplay();
+        }, 1000);
+        logEvent("Hideout established! Passive gold generation increased.");
+        updateDisplay();
+      }
+    });
+
+    fearAuraButton.addEventListener('click', unlockFearAura);
+    shadowStepButton.addEventListener('click', unlockShadowStep);
+    reduceCommonsButton.addEventListener('click', reduceCommons);
+
+    // Debug Event Listeners
+    document.getElementById('debug-gold').addEventListener('click', debugAddGold);
+    document.getElementById('debug-populace').addEventListener('click', debugAddPopulace);
+    document.getElementById('debug-essence').addEventListener('click', debugAddEssence);
+    document.getElementById('debug-influence').addEventListener('click', debugAddInfluence);
+    document.getElementById('debug-reputation').addEventListener('click', debugAddReputation);
+
+    // Initialize Display
+    updateDisplay();
+  </script>
+</body>
+</html>
