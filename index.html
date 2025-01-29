@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Demon Prince Revolution</title>
+  <title>Meow Meow Meow</title>
   <style>
     /* CSS Styles (unchanged) */
     body {
@@ -122,6 +122,47 @@
       color: #ff4444;
     }
 
+    .minion-card h3.princess {
+        font-weight: bold;
+        animation: 
+            glowColors 8s linear infinite alternate,
+            gentleSway 4s ease-in-out infinite, 
+            pulsingText 4s ease-in-out infinite;
+        text-shadow: 0 0 10px currentColor;
+        transform-origin: bottom center;
+        box-shadow: rgba(99, 102, 241, 0.5);
+        animation-delay: -1s;
+    }
+
+    @keyframes glowColors {
+        0% { color: #ffffff; }  /* White */
+        33% { color: #98f3f3; } /* Light cyan */
+        66% { color: #b7b7fc; } /* Lavender */
+        100% { color: #ff9bbc; } /* Lavender blush */
+    }
+
+    @keyframes pulsingText {
+    0% {
+        transform: translate (-50%, 0%) rotate (-3deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate (-50%, 0%) scale(1.2);
+        opacity: 0.8;
+    }
+    }
+
+    /* Swaying animation */
+    @keyframes gentleSway {
+    0%, 100% {
+        transform: rotate(-1deg);
+    }
+    50% {
+        transform: rotate(1deg);
+    }
+    }
+
+
     .minion-card p {
       margin: 5px 0;
     }
@@ -137,8 +178,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>Demon Revolution</h1>
-    <p>Bring the End.</p>
+    <h1>Dragon Bite</h1>
+    <p>City-Capturing, Reputation, and Influence aren't balanced or implemented yet c:<br>Now featuring: Princess Mechanics!</p>
 
     <div class="stats">
       <p>Corrupted Populace: <span id="corrupted">0</span></p>
@@ -152,23 +193,23 @@
     <div class="actions">
       <button id="corrupt-button">
         Corrupt Populace
-        <span class="tooltip">Personally influence the populace.<br>Efficiency scales with reputation and minion corruption boost.</span>
+        <span class="tooltip">Personally influence the populace. Efficiency scales with reputation and minion corruption boost.</span>
       </button>
       <button id="capture-gang-button" disabled>
         Crush Gang
-        <span class="tooltip">Cost: <span id="capture-gang-cost">30</span> Corrupted.<br>Crush an underworld gang to loot a small amount of gold and influence.</span>
+        <span class="tooltip">Cost: <span id="capture-gang-cost">30</span> Populace.<br>Crush an underworld gang to loot a small amount of gold and influence.</span>
       </button>
-      <button id="capture-city-button" disabled>
+      <!--<button id="capture-city-button" disabled>
         Capture City
         <span class="tooltip">Cost: 5000 Corrupted.<br>Capture a city to earn gold and influence.</span>
+      </button>-->
+      <button id="recruit-minion-button" disabled>
+        Recruit Minion
+        <span class="tooltip">Cost: <span id="recruit-minion-cost">100</span> Gold.<br>Recruit a minion with random stats and traits.</span>
       </button>
       <button id="trigger-uprising-button">
         Trigger Uprising
-        <span class="tooltip">Attempt to instantly take a city. Success chance: <span id="uprising-chance">0%</span>. This risks many of your populace.</span>
-      </button>
-      <button id="recruit-minion-button">
-        Recruit Minion
-        <span class="tooltip">Cost: 100 Gold.<br>Recruit a minion with random stats and traits.</span>
+        <span class="tooltip">Attempt to take a city. Start with the smallest and move up. Success chance: <span id="uprising-chance">0%</span>. This risks many of your populace.</span>
       </button>
     </div>
 
@@ -182,25 +223,25 @@
         Establish Safehouse
         <span class="tooltip">Cost: <span id="establish-hideout-cost">200</span> Gold.<br>Generate 1 gold every second.</span>
       </button>
-      <button id="propaganda-button" disabled>
+      <!--<button id="propaganda-button" disabled>
         Propaganda Campaign
         <span class="tooltip">Cost: 1000 Gold.<br>Increase reputation by 10.</span>
-      </button>
+      </button>-->
     </div>
 
     <div class="powers">
       <h2>Powers</h2>
       <button id="fear-aura-button" disabled>
         Fear Aura
-        <span class="tooltip">Cost: 200 Soul Essence. Unlock Fear Aura to passively corrupt 20 populace every 5 seconds.</span>
+        <span class="tooltip">Cost: 200 Soul Essence.<br>Unlock Fear Aura to passively corrupt 20 populace every 5 seconds.</span>
       </button>
       <button id="reduce-commons-button" disabled>
         Draconic Standards
-        <span class="tooltip">Cost: <span id="reduce-commons-cost">200</span> Soul Essence. Reduces the odds of getting a Common minion.</span>
+        <span class="tooltip">Cost: <span id="reduce-commons-cost">200</span> Soul Essence.<br>Reduces the odds of getting a Common minion.</span>
       </button>
-      <button id="shadow-step-button" disabled>
-        Placeholder
-        <span class="tooltip">Cost: 500 Soul Essence. Unlock Shadow Step to meow meow meow meow.</span>
+      <button id="flesh-harvest-button" disabled>
+        Flesh Harvest
+        <span class="tooltip">Cost: <span id="flesh-harvest-cost">500</span> Soul Essence.<br>Steal servants and lovers from the underworld syndicates you crush.</span>
       </button>
     </div>
 
@@ -221,6 +262,7 @@
       <button id="debug-essence">Debug: +1000 Soul Essence</button>
       <button id="debug-influence">Debug: +1000 Influence</button>
       <button id="debug-reputation">Debug: +1000 Reputation</button>
+      <button id="debug-minion">Debug: Add Minion</button>
     </div>
   </div>
 
@@ -233,14 +275,22 @@
     let reputation = 0;
     let soulEssence = 0;
     let autoCorruptInterval = null;
+    let autoCorruptRank = 0;
     let hideouts = 0;
+    let recruitMinionCost = 100;
     let minions = [];
     let fearAuraUnlocked = false;
-    let shadowStepUnlocked = false;
+    let fleshHarvestRank = 0;
+    let fleshHarvestUnlocked = false;
+    let fleshHarvestCost = 500;
+    let reduceCommonsUnlocked = false;
     let autoCorruptCost = 10; // Initial Auto-Corrupt cost
     let captureGangCost = 30;
     let establishHideoutCost = 200; // Initial Establish Hideout cost
     let lieutenantsCount = 0; // Track number of promoted minions
+    let lieutenantsMax = 5; // Max LTs
+    let princessCount = 0;
+    let princessMax = 1; // Max princesses!!!!!!!!!!!
     let activeUniqueMinions = [];
     let lastEvent = null;
     let lastEventCount = 1;
@@ -262,15 +312,15 @@
     const reputationElement = document.getElementById('reputation');
     const soulEssenceElement = document.getElementById('soul-essence');
     const corruptButton = document.getElementById('corrupt-button');
-    const captureCityButton = document.getElementById('capture-city-button');
+    //const captureCityButton = document.getElementById('capture-city-button');
     const captureGangButton = document.getElementById('capture-gang-button');
     const triggerUprisingButton = document.getElementById('trigger-uprising-button');
     const recruitMinionButton = document.getElementById('recruit-minion-button');
     const autoCorruptButton = document.getElementById('auto-corrupt-button');
-    const propagandaButton = document.getElementById('propaganda-button');
+    //const propagandaButton = document.getElementById('propaganda-button');
     const establishHideoutButton = document.getElementById('establish-hideout-button');
     const fearAuraButton = document.getElementById('fear-aura-button');
-    const shadowStepButton = document.getElementById('shadow-step-button');
+    const fleshHarvestButton = document.getElementById('flesh-harvest-button');
     const reduceCommonsButton = document.getElementById('reduce-commons-button');
     const eventLog = document.getElementById('event-log');
     const minionList = document.getElementById('minion-list');
@@ -341,20 +391,25 @@ function logUpgradeEvent(minion) {
       soulEssenceElement.textContent = Math.floor(soulEssence);
 
       // Enable/disable buttons based on resources
-      captureCityButton.disabled = corruptedPopulace < 5000;
+      //captureCityButton.disabled = corruptedPopulace < 5000;
       captureGangButton.disabled = corruptedPopulace < captureGangCost;
       autoCorruptButton.disabled = influence < autoCorruptCost;
-      propagandaButton.disabled = gold < 1000;
+      recruitMinionButton.disabled = gold < recruitMinionCost;
+      //propagandaButton.disabled = gold < 1000;
       establishHideoutButton.disabled = gold < establishHideoutCost;
       fearAuraButton.disabled = soulEssence < 200 || fearAuraUnlocked;
-      shadowStepButton.disabled = soulEssence < 500 || shadowStepUnlocked;
-      reduceCommonsButton.disabled = soulEssence < reduceCommonsCost;
+      fleshHarvestButton.disabled = soulEssence < fleshHarvestCost || fleshHarvestUnlocked;
+      reduceCommonsButton.disabled = soulEssence < reduceCommonsCost || reduceCommonsUnlocked;
 
-      // Update tooltips
+      // Update tooltip costs
       document.getElementById('auto-corrupt-cost').textContent = autoCorruptCost;
       document.getElementById('capture-gang-cost').textContent = captureGangCost;
       document.getElementById('establish-hideout-cost').textContent = establishHideoutCost;
-      document.getElementById('reduce-commons-cost').textContent = reduceCommonsCost;
+      if (commonsChance > 0) {document.getElementById('reduce-commons-cost').textContent = reduceCommonsCost;}
+      document.getElementById('flesh-harvest-cost').textContent = fleshHarvestCost;
+      document.getElementById('recruit-minion-cost').textContent = recruitMinionCost;
+      
+      //Update tooltips when something is maxxed out
 
       // Calculate success chance for Trigger Uprising
       let successChance = 0;
@@ -394,7 +449,14 @@ function logUpgradeEvent(minion) {
         const influenceBoost = calculateTotalBoost('influenceBoost');
         gold += 50 * (1 + (goldBoost / 100));
         influence += 10 * (1 + (influenceBoost / 100));
-        logEvent("Another syndicate is crushed. You reap their equipment and their reputation. Other factions grow more wary of you.");
+        if (fleshHarvestRank > 0){ // If we have flesh harvest...
+            for (let i = 0; i < fleshHarvestRank; i++) { // Do this Rank times
+                getMinion();
+            }
+            logEvent(`Soldiers, Tacticians, Slaves, Underlings, Leaders; They're happier serving you. Number of Minions stolen: ${fleshHarvestRank}`)
+        } else { // Plays before you get flesh harvest
+        logEvent("A rival syndicate is crushed. You reap their equipment and their reputation. Other factions grow more wary of you.");
+        }
         updateDisplay();
       }
     }
@@ -422,34 +484,39 @@ function logUpgradeEvent(minion) {
     }
 
     function recruitMinion() {
-      if (gold >= 100) {
-        gold -= 100;
+      if (gold >= recruitMinionCost) {
+            gold -= recruitMinionCost;
+            recruitMinionCost = Math.floor(recruitMinionCost * 1.15)
+            getMinion();
+        }
+    }
+
+    function getMinion() {
         const minion = generateMinion();
         minions.push(minion);
         logEvent(`Recruited ${minion.name} (${minion.rarity})!`);
         updateDisplay();
         renderMinions();
-      }
     }
 
 // Name Lists
 const uniqueNames = [
-  "Nahira", "Natsuko", "Priya", "Rose", "Namlu", "Ritual", "Chupra", "Kitsuneet",
+  "Nahira", "Natsuko", "Priya", "Rose", "Namlu", "Ritual", "Chupra", "Kitsuneet", "Harm",
   "Zya", "Inga", "Clever", "Dusty", "Grimgrin", "Deathtouch", "Etrata", "Nadalith", "Greve",
-  "Lila", "Harrow", "Valerie", "Lala", "Coyote", "God-Eater", "Elf", "Super Stella", "Drain", "Xalyth", 
-  "Eryss Lyraze Baela", "Beats", "The Final Puppy", "Emberith", "Decima",
+  "Lila", "Harrow", "Valerie", "Lala", "God-Eater", "Elf", "Super Stella", "Drain", "Xalyth", 
+  "Eryss Lyraze Baela", "Beats", "The Final Puppy", "Emberith", "Decima", "Wendyet", "Fox",
 ];
 
 const genericNames = [
-  "Aella", "Bryn", "Roxy", "Daria", "Elara", "Faye", "Tame", "Hestri", "Iris", "Juno", "Huntress",
-  "Kira", "Luna", "Maeve", "Nyx", "Ophelia", "Piper", "Quinn", "Rhea", "Sable", "Talia", "Killergirl",
-  "Uma", "Vera", "Wren", "Yara", "Zelda", "Zipper", "Chloena", "Avery", "Henrietta",
-  "Rowan", "Skyla", "Taylire", "Morgan", "Alexa", "Alexis", "Charlie", "Vritra", "Tanilia", "Stella",
-  "Gummy", "Christine", "Lilin", "Darla", "Emmy", "Kayle", "Sylanis", "Snare", "Bedbug", "Critter",
+  "Aella", "Bryn", "Roxy", "Dariza", "Elara", "Faye", "Tame", "Hestri", "Iris", "Juno", "Huntress",
+  "Kiran", "Luna", "Maeve", "Nyx", "Ophelia", "Piper", "Quinn", "Rhea", "Sable", "Talia", "Killergirl",
+  "Uma", "Vera", "Wren", "Yara", "Zelda", "Viola", "Chloena", "Sitaveri", "Henrietta",
+  "Rowan", "Skyla", "Taylire", "Morgan", "Alexa", "Alexis", "Shark", "Vritra", "Tanilia", "Stella",
+  "Gummy", "Christine", "Lilin", "Darla", "Ai", "Kayle", "Sylanis", "Snare", "Bedbug", "Critter",
   "Screw", "Ash", "Bella", "Bell", "Gwyn", "Shrike", "Masamune", "Cinder", "Yvonne", "Wesker", "Lady", "Myriad",
   "Puppy", "Roar", "Glim", "Justine", "Maltecora", "Velvet", "Ya'el", "Fatima", "Haunt", "Jinxy", "Miso", "Thorn",
-  "Penny", "Dreadful", "Redcrosse", "Question", "Answer", "Clover", "Peace", "Mia", "Chesapeake", "Bliss",
-  "Twist", "Cheshire", "Quinn", "Chains", "Ivy", "Harm", "Amelie", "Hayawan", "Tombe", "Asp", "Miri",
+  "Penny", "Dreadful", "Redcrosse", "Question", "Anzi", "Clover", "Peace", "Mia", "Chesapeake", "Bliss",
+  "Vivi", "Cheshire", "Quinn", "Chains", "Ivy", "Harmony", "Amelie", "Hayawan", "Tombe", "Asp", "Miri", "Leah",
   // ... (add more names as needed)
 ];
 
@@ -471,7 +538,7 @@ const adjectiveVerbPrefixes = [
 const suffixes = [
   ", of the Marsh", ", from the Shadows", ", Fearless", ", Sacrilegious Hunter", ", Unrepentant Lover", ", The Puppy", " Who Never Gives Up", ", Without Remorse",
   ", Unrelenting", ", Driven Mad With Love", ", Driven Mad With Rage", ", Driven Mad With Hunger", ", Driven Mad With Fear", ", the Broken Doll", ", the Lost Angel",
-  ", Lost and Wandering", ", Devoted", ", Devoted and Desperate", ", Devoted to Victory", ", Devoted to Love", ", Who Gets What She Wants", "Who Is Who She Wishes",
+  ", Lost and Wandering", ", Devoted", ", Devoted and Desperate", ", Devoted to Victory", ", Devoted to Love", ", Who Gets What She Wants", ", Who Is Who She Wishes",
   ", Witch of Love", ", Witch of Woods", ", Witch of Cities", ", Witch of Conquest", ", Witch of Blood", ", Witch of Hearts", ", Queen of Hearts", ", Queen of Aces",
   ", Queen of Clubs", ", Queen of Spades", ", Cuckquean", ", Rebuilt", ", Reborn", ", Freshly Varnished", ", Beloved By All Who See Her", ", Feared By All Who See Her", 
   ", Of Claws And Horns", ", Of Teeth And Bite", ", Punching Bag", ", Witch of Ice", ", Witch of Crows", ", Witch of Ragdolls", ", Witch of Wifi", ", Betrayer",
@@ -529,30 +596,30 @@ function generatePrefixedName(name) {
   }
 }
 
-function generateMinion() {
-  const rarity = getRandomRarity();
-  let name, title = "";
-  
-  if (rarity === "Unique") {
-    const availableUniqueNames = uniqueNames.filter(name => !activeUniqueMinions.includes(name));
-    if (availableUniqueNames.length === 0) {
-      return generateMinion();
+    function generateMinion() {
+    const rarity = getRandomRarity();
+    let name, title = "";
+    
+    if (rarity === "Unique") {
+        const availableUniqueNames = uniqueNames.filter(name => !activeUniqueMinions.includes(name)); // Track which uniques are active
+        if (availableUniqueNames.length === 0) {
+        return generateMinion();
+        } else {
+        name = getRandomFromList(availableUniqueNames);
+        activeUniqueMinions.push(name);
+        }
     } else {
-      name = getRandomFromList(availableUniqueNames);
-      activeUniqueMinions.push(name);
+        name = getRandomFromList(genericNames);
+        if (rarity === "Rare") {
+        name = generatePrefixedName(name);
+        } else if (rarity === "Epic") {
+        title = `${getRandomFromList(suffixes)}`;
+        name = `${name}${title}`;
+        } else if (rarity === "Legendary") {
+        name = generatePrefixedName(name); // Add prefix(es)
+        name = `${name}${getRandomFromList(suffixes)}`; // Add one suffix
+        }
     }
-  } else {
-    name = getRandomFromList(genericNames);
-    if (rarity === "Rare") {
-      name = generatePrefixedName(name);
-    } else if (rarity === "Epic") {
-      title = `${getRandomFromList(suffixes)}`;
-      name = `${name}${title}`;
-    } else if (rarity === "Legendary") {
-      name = generatePrefixedName(name); // Add prefix(es)
-      name = `${name}${getRandomFromList(suffixes)}`; // Add one suffix
-    }
-  }
 
   const stats = {
     level: 1,
@@ -560,6 +627,7 @@ function generateMinion() {
     goldBoost: getStatByRarity(rarity),
     influenceBoost: getStatByRarity(rarity),
     promoted: false,
+    princess: false,
     upgradeCost: 100,
   };
 
@@ -571,7 +639,7 @@ function generateMinion() {
         case "Common": return Math.floor(Math.random() * 6); // 0-5
         case "Rare": return Math.floor(Math.random() * 8) + 3; // 3-10
         case "Epic": return Math.floor(Math.random() * 16) + 10; // 10-25
-        case "Legendary": return Math.floor(Math.random() * 21) + 20; // 20-40
+        case "Legendary": return Math.floor(Math.random() * 21) + 20; // 20-60
         case "Unique": return Math.floor(Math.random() * 51) + 50; // 50-100
         default: return 0;
       }
@@ -583,7 +651,7 @@ function generateMinion() {
         const card = document.createElement('div');
         card.className = 'minion-card';
         card.innerHTML = `
-          <h3 class="${minion.stats.promoted ? 'promoted' : ''}">${minion.name} (${minion.rarity})</h3>
+          <h3 class="${minion.stats.princess ? 'princess' : minion.stats.promoted ? 'promoted' : ''}">${minion.name} (${minion.rarity})</h3>
           <p>Level: ${minion.stats.level}</p>
           <p>Corruption Boost: +${minion.stats.corruptionBoost}%</p>
           <p>Gold Boost: +${minion.stats.goldBoost}%</p>
@@ -592,14 +660,33 @@ function generateMinion() {
             Upgrade
             <span class="tooltip">Cost: 100 Gold. ${minion.stats.promoted ? 'Gains +2 to all stats.' : 'Gains +1 to all stats.'}</span>
           </button>
-          <button onclick="promoteMinion(${index})" ${minion.stats.promoted || lieutenantsCount >= 5 ? 'disabled' : ''}>
-            Promote
-            <span class="tooltip">${lieutenantsCount >= 5 ? 'Max lieutenants reached (5).' : 'Cost: 100 Influence. Doubles stats and future stat gains.'}</span>
-          </button>
-          <button onclick="demoteMinion(${index})">
-            Demote to Pet
-            <span class="tooltip">Gain ${minion.stats.level * 50} Influence.</span>
-          </button>
+
+            <button onclick="${
+                minion.stats.princess ? 'petPrincess()' :
+                'promoteMinion(' + index + ')'
+            }">
+            ${
+                minion.stats.princess ? 'Pet' :
+                minion.stats.promoted ? 'Pamper' :
+                'Promote'    
+            }
+            <span class="tooltip">
+                ${
+                    minion.stats.princess ? 'Meow :3' :
+                    minion.stats.promoted ? 
+                        (princessCount < princessMax ? 
+                            'Cost: 1000 Influence.<br>Further 5x stats and future stat gains. (10x total)' :
+                            'Cannot spare attention on another princess.') :
+                        (lieutenantsCount < lieutenantsMax ? 
+                            'Cost: 100 Influence.<br>Doubles stats and future stat gains.' :
+                            'Retinue is full. Demote, promote, or eat a Lieutenant to free up space.')
+                }
+            </span>
+            <button onclick="demoteMinion(${index})">
+                ${minion.stats.princess ? 'Remove from Lap' : (minion.stats.promoted ? 'Remove from Retinue' : 'Demote to Puppy')}
+                <span class="tooltip">${minion.stats.princess ? 'Demote to Lieutenant.<br>Refund 700 Influence.' : (minion.stats.promoted ? 'Demote to Minion.<br>Refund 70 Influence.' : 
+                `Strip of tools and banish to your lair.<br>Gain ${minion.stats.level * 50} Influence.`)}</span>
+            </button>
           <button onclick="consumeSoul(${index})">
             Consume Soul
             <span class="tooltip">Gain ${minion.stats.level * 100} Soul Essence.</span>
@@ -625,49 +712,103 @@ function generateMinion() {
     }
 
     function promoteMinion(index) {
-      if (influence >= 100 && lieutenantsCount < 5) {
-        influence -= 100;
         const minion = minions[index];
-        minion.stats.corruptionBoost *= 2;
-        minion.stats.goldBoost *= 2;
-        minion.stats.influenceBoost *= 2;
-        minion.stats.promoted = true;
-        minion.rarity = "Lieutenant";
-        lieutenantsCount += 1;
-        logEvent(`Promoted ${minion.name} to Lieutenant!`);
-        updateDisplay();
-        renderMinions();
-      }
+        if (influence >= 1000 && minion.stats.promoted === true) { // Checks if we're trying to make a princess
+            if (princessCount < princessMax) { // Checks if we have room for more princesses
+                influence -= 1000;
+                minion.stats.promoted = false;
+                minion.stats.princess = true;
+                princessCount += 1;
+                lieutenantsCount -= 1;
+                logEvent(`${minion.name} had a life, maybe a future. Now she's <span style="color: white; font-weight: bold; font-style: italic;">yours</span>, 
+                like few will ever be.`)
+                minion.stats.corruptionBoost *= 5;
+                minion.stats.goldBoost *= 5;
+                minion.stats.influenceBoost *= 5;
+                minion.rarity = "Princess";
+            } 
+            if (princessCount === princessMax) { // Checks if we are at our max
+                logEvent(`You could not fathom sparing the attention for another princess. You barely have the time or energy for your conquest.`)
+            } else {
+                logEvent(`You could maybe, barely, squeeze in attention for ${princessMax - princessCount} more princess${princessMax - princessCount === 1 ? '' : 'es'}.`) //Adds es if 2/3/etc
+            }
+        } else if (influence < 1000 && minion.stats.promoted === true) {
+            logEvent(`You need more influence to make her Yours. Get it. You need it.`);
+        } else if (influence >= 100 && lieutenantsCount < lieutenantsMax) {
+            influence -= 100;
+            minion.stats.corruptionBoost *= 2;
+            minion.stats.goldBoost *= 2;
+            minion.stats.influenceBoost *= 2;
+            minion.stats.promoted = true;
+            minion.rarity = "Lieutenant";
+            lieutenantsCount += 1;
+            logEvent(`Promoted ${minion.name} to Lieutenant! There is room for ${5 - lieutenantsCount} more companions at your side.`);
+        } else if (influence < 100 && minion.stats.promoted === false) {
+            logEvent(`You'll need more influence to establish her as a member of your retinue.`);
+        } else if (minion.stats.promoted === false && lieutenantsCount <= lieutenantsMax) {
+            logEvent(`You already have too many monsters in your retinue. Demote or promote one to make some space.`);
+        }
+
+      updateDisplay();
+      renderMinions();
     }
 
     function demoteMinion(index) {
         const minion = minions[index];
-        logEvent(`${minion.name} serves better as a status symbol than a tool. They wish they were you. They wish they were <em>her</em>. Gained ${minion.stats.level * 50} influence.`);
-        // Gain Influence based on level
-        influence += minion.stats.level * 50;
         // If the minion is unique, remove them from activeUniqueMinions
         if (minion.rarity === "Unique") {
-        activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
+            activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
         }
-        // Remove the minion from the list
-        minions.splice(index, 1);
+        if (minion.rarity === "Lieutenant") { // If the minion is a Lieutenant, demotes them to Punished
+            minion.rarity = "Punished";
+            minion.stats.corruptionBoost /= 2;
+            minion.stats.goldBoost /= 2;
+            minion.stats.influenceBoost /= 2;
+            minion.stats.promoted = false;
+            lieutenantsCount -= 1; // Subtracts 1 lieutenant
+            influence += 70; // Refunds 70 influence
+            logEvent(`${minion.name} is sent away from your retinue. There's a new empty seat. She'll spend her life trying to earn it back. Refunded 70 Influence.`);
+        } else if (minion.rarity === "Princess") { // If the minion is a Princess, demotes them to Lieutenant
+            minion.rarity = "Lieutenant";
+            minion.stats.corruptionBoost /= 5;
+            minion.stats.goldBoost /= 5;
+            minion.stats.influenceBoost /= 5;
+            minion.stats.princess = false;
+            minion.stats.promoted = true;
+            princessCount -= 1; // Subtracts 1 princess
+            lieutenantsCount += 1; // Re-adds 1 lieutenant
+            logEvent(`Sorry, Princess. She's needed in the field again. This is the worst day of ${minion.name}'s life. Refunded 700 Influence.`);
+        } else { // Removes the minion entirely if they are sub-lieutenant.
+            logEvent(`${minion.name} serves better as a status symbol than a tool. Your peers wish they were you. 
+            They wish they were <em>her</em>. Gained ${minion.stats.level * 50} influence.`);
+
+            // Gain Influence based on level
+            influence += minion.stats.level * 50;
+
+            // Remove the minion from the list
+            minions.splice(index, 1);
+        }
         renderMinions();
     }
 
     function consumeSoul(index) {
         const minion = minions[index];
-        logEvent(`${minion.name}'s soul wisps through through lips and into yours. She's happy, on the way down. Harvested ${minion.stats.level * 100} essence.`);
-        // Gain Soul Essence based on level
-        soulEssence += minion.stats.level * 100;
+        if (minion.rarity === "Princess" || minion.rarity === "Lieutenant") {
+            logEvent(`Can't eat one of your precious ones. Demote them first.`);
+        } else {
+            logEvent(`${minion.name}'s soul wisps through her lips and into yours. She's happy, on the way down. Harvested ${minion.stats.level * 100} essence.`);
+            // Gain Soul Essence based on level
+            soulEssence += minion.stats.level * 100;
 
-        // If the minion is unique, remove them from activeUniqueMinions
-        if (minion.rarity === "Unique") {
-            activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
+            // If the minion is unique, remove them from activeUniqueMinions
+            if (minion.rarity === "Unique") {
+                activeUniqueMinions = activeUniqueMinions.filter(name => name !== minion.name.split(",")[0].trim());
+            }
+            // Remove the minion from the list
+            minions.splice(index, 1);
+            lieutenantsCount -= 1; // Subtracts 1 lieutenant
+            renderMinions();
         }
-        // Remove the minion from the list
-        minions.splice(index, 1);
-
-        renderMinions();
     }
 
     function unlockFearAura() {
@@ -681,39 +822,46 @@ function generateMinion() {
           updateDisplay();
         }, 5000); // Fear aura boosts corruption every 5 seconds
         logEvent("When you enter the room, everyone's stomach sinks. Your presence is narcotic.");
+        document.querySelector('#fear-aura-button .tooltip').innerHTML = `Maxed Out.<br>Passively corrupt 20 populace every 5 seconds.`;
         updateDisplay();
       }
     }
 
-    function unlockShadowStep() {
-      if (soulEssence >= 500) {
-        soulEssence -= 500;
-        shadowStepUnlocked = true;
-        logEvent("Shadow Step unlocked! Instantly capture gangs.");
+    function upgradeFleshHarvest() {
+      if (soulEssence >= fleshHarvestCost) {
+        soulEssence -= fleshHarvestCost;
+        fleshHarvestCost = fleshHarvestCost * 2; // Doubles cost
+        fleshHarvestRank ++; // Increases rank
+        if (fleshHarvestRank >= 15) { // Max rank 15?
+            fleshHarvestUnlocked = true;
+            logEvent("Enchanted guns, cursed swords, artifacts, drugs, gold, tomes? Those aren't the best your rivals have to offer. They've been gathering what you want most.")
+        } else {
+            logEvent("You don't kill or scatter everyone you see. A few seconds under your claw, and they'll understand their place.");
+        }
         updateDisplay();
       }
     }
 
     function reduceCommons() {
       if (soulEssence >= reduceCommonsCost) {
-        if (commonsChance <= 0) {
-            logEvent("You already filter out the pliable dregs. This is unnecessary.")
-        } else {
             soulEssence -= reduceCommonsCost;
             reduceCommonsCost = Math.floor(reduceCommonsCost * 1.25); // Increase cost by 1.25x
             commonsChance = Math.max(commonsChance - 5, 0); //Lowers commons chance by 5 but never below 0
             rarityWeights.Common = commonsChance;
+
             if (commonsChance > 0) {
                 logEvent(`You've been getting better at filtering out the rabble. Less Common minions will waste your time.`);
             } else {
+                reduceCommonsUnlocked = true;
                 refuseCommons = true;
+                document.querySelector('#reduce-commons-button .tooltip').innerHTML = `Maxed Out.<br>Common minions will no longer spawn.`;
                 logEvent(`You've mastered the art of identifying the spark. Capacity for bravery, capacity for heroics, capacity for hatred, capacity for devotion...`);
             }
 
         }
         updateDisplay();
-      }
     }
+    
 
     // Debug Functions
     function debugAddGold() {
@@ -738,6 +886,7 @@ function generateMinion() {
       influence += 1000;
       logEvent("Debug: Added 1000 Influence.");
       updateDisplay();
+      renderMinions();
     }
 
     function debugAddReputation() {
@@ -746,9 +895,15 @@ function generateMinion() {
       updateDisplay();
     }
 
+    function debugAddMinion() {
+        getMinion();
+        logEvent("Debug: Added a minion.");
+        updateDisplay();
+    }
+
     // Event Listeners
     corruptButton.addEventListener('click', corrupt);
-    captureCityButton.addEventListener('click', captureCity);
+    //captureCityButton.addEventListener('click', captureCity);
     captureGangButton.addEventListener('click', captureGang);
     triggerUprisingButton.addEventListener('click', triggerUprising);
     recruitMinionButton.addEventListener('click', recruitMinion);
@@ -756,27 +911,22 @@ function generateMinion() {
     autoCorruptButton.addEventListener('click', () => {
       if (influence >= autoCorruptCost) {
         influence -= autoCorruptCost;
+        autoCorruptRank ++;
         autoCorruptCost = Math.floor(autoCorruptCost * 1.25); // Increase cost by 1.25x
-        autoCorruptInterval = setInterval(() => {
-          const corruptionBoost = calculateTotalBoost('corruptionBoost');
-          const bonus = 1 + (corruptionBoost / 100); // +1% per corruptionBoost
-          corruptedPopulace += 1 * (1 + (reputation / 100)) * bonus;
-          updateDisplay();
-        }, 1000); // Auto-corrupt every second
         autoCorruptButton.disabled = true;
         logEvent("They flock to you. Word of mouth, sting of touch. They know you're right. They know you're holy.");
         updateDisplay();
       }
     });
 
-    propagandaButton.addEventListener('click', () => {
+    /*propagandaButton.addEventListener('click', () => {
       if (gold >= 1000) {
         gold -= 1000;
         reputation += 10;
         logEvent("Propaganda campaign launched! Reputation increased.");
         updateDisplay();
       }
-    });
+    });*/
 
     establishHideoutButton.addEventListener('click', () => {
       if (gold >= establishHideoutCost) {
@@ -795,7 +945,7 @@ function generateMinion() {
     });
 
     fearAuraButton.addEventListener('click', unlockFearAura);
-    shadowStepButton.addEventListener('click', unlockShadowStep);
+    fleshHarvestButton.addEventListener('click', upgradeFleshHarvest);
     reduceCommonsButton.addEventListener('click', reduceCommons);
 
     // Debug Event Listeners
@@ -804,9 +954,22 @@ function generateMinion() {
     document.getElementById('debug-essence').addEventListener('click', debugAddEssence);
     document.getElementById('debug-influence').addEventListener('click', debugAddInfluence);
     document.getElementById('debug-reputation').addEventListener('click', debugAddReputation);
+    document.getElementById('debug-minion').addEventListener('click', debugAddMinion);
+
+    function gameClock() { // Game ticks, will be called 10x per second
+        // Passive Populace gain:
+        const corruptionBoost = calculateTotalBoost('corruptionBoost'); // Finds how much our minions are multiplying our corruption by
+        const bonus = autoCorruptRank + (corruptionBoost / 100); // +1% per corruptionBoost
+        corruptedPopulace += (1 * bonus) / 10; // Divided by 10, so 10 ticks per second equals 1*bonus per second in total
+        updateDisplay();
+    }
 
     // Initialize Display
     updateDisplay();
+    renderMinions();
+    window.addEventListener("load", () => {
+        setInterval(gameClock, 100);
+    })
   </script>
 </body>
 </html>
